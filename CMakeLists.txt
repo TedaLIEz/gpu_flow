@@ -43,7 +43,8 @@ endif(COMMAND cmake_policy)
 
 ADD_EXECUTABLE(
   compute_flow
-  compute_flow.cpp
+#  compute_flow.cpp
+  optical_flow.cpp  
   ${SRCS}
 )
 
