@@ -17,7 +17,7 @@ inline bool isFlowCorrect(Point2f u)
     return !cvIsNaN(u.x) && !cvIsNaN(u.y) && fabs(u.x) < 1e9 && fabs(u.y) < 1e9;
 }
 
-static Vec3b computeColor(float fx, float fy)
+static Vec4b computeColor(float fx, float fy)
 {
     static bool first = true;
 
@@ -27,8 +27,7 @@ static Vec3b computeColor(float fx, float fy)
     //  than between yellow and green)
     const int RY = 15;
     const int YG = 6;
-    const int GC = 4;
-    const int CB = 11;
+    const int GC = 4; const int CB = 11;
     const int BM = 13;
     const int MR = 6;
     const int NCOLS = RY + YG + GC + CB + BM + MR;
