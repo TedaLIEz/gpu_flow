@@ -67,8 +67,9 @@ static Vec3b computeColor(float fx, float fy)
     const int k1 = (k0 + 1) % NCOLS;
     const float f = fk - k0;
 
-    Vec3b pix;
-
+    Vec4b pix;
+    pix[3] = static_cast<uchar>(255.0);
+    bool alpha = false;
     for (int b = 0; b < 3; b++)
     {
         const float col0 = colorWheel[k0][b] / 255.0f;
@@ -80,16 +81,20 @@ static Vec3b computeColor(float fx, float fy)
             col = 1 - rad * (1 - col); // increase saturation with radius
         else
             col *= .75; // out of range
-
+        if (255.0 * col == 0.0) {
+            alpha = true;
+        }
         pix[2 - b] = static_cast<uchar>(255.0 * col);
     }
-
+    if (alpha) {
+        pix[3] = static_cast<uchar>(0.0);
+    }
     return pix;
 }
 
 static void drawOpticalFlow(const Mat_<float>& flowx, const Mat_<float>& flowy, Mat& dst, float maxmotion = -1)
 {
-    dst.create(flowx.size(), CV_8UC3);
+    dst.create(flowx.size(), CV_8UC4);  // change to CV_8UC4 to use the alpha channel.
     dst.setTo(Scalar::all(0));
 
     // determine motion range:
@@ -119,7 +124,7 @@ static void drawOpticalFlow(const Mat_<float>& flowx, const Mat_<float>& flowy, 
             Point2f u(flowx(y, x), flowy(y, x));
 
             if (isFlowCorrect(u))
-                dst.at<Vec3b>(y, x) = computeColor(u.x / maxrad, u.y / maxrad);
+                dst.at<Vec4b>(y, x) = computeColor(u.x / maxrad, u.y / maxrad);
         }
     }
 }
