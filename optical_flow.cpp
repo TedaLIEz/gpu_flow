@@ -147,11 +147,13 @@ static void showFlow(const char* name, const cv::cuda::GpuMat& d_flow)
 int main(int argc, const char* argv[])
 {
     string vpath;
+    string output_path;
     if (argc < 2) {
-        cerr << "Usage : " << argv[0] << " <vpath>" << endl;
+        cerr << "Usage : " << argv[0] << " <vpath> <output_path>" << endl;
         return 0;
     } else {
         vpath = argv[1];
+        output_path = argv[2];
     }
 
     VideoCapture capture;
@@ -192,10 +194,19 @@ int main(int argc, const char* argv[])
 
         const double timeSec = (getTickCount() - start) / getTickFrequency();
         cout << "Brox in frame "  << i << " using " << timeSec << " sec " << endl;
-        std::ostringstream stream;
-        stream << std::setfill('0') << std::setw(5) << (i + 1) << ".jpg";
-
-        showFlow(stream.str().c_str(), d_flow);
+        if (i == 0) {
+            std::ostringstream stream;
+            stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 1) << ".jpg";
+            showFlow(stream.str().c_str(), d_flow);
+            stream.clear();
+            stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 2) << ".jpg";
+            showFlow(stream.str().c_str(), d_flow);
+        } else {
+            std::ostringstream stream;
+            stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 2) << ".jpg";
+            showFlow(stream.str().c_str(), d_flow);
+        }
+        
         prev = curr;
     }
 
