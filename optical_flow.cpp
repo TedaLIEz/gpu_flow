@@ -57,7 +57,7 @@ static Vec3b computeColor(float fx, float fy)
 
         first = false;
     }
-
+    // std::cout << "fxy: (" << fx << ", " << fy << ")" << std::endl;
     const float rad = sqrt(fx * fx + fy * fy);
     const float a = atan2(-fy, -fx) / (float) CV_PI;
 
@@ -73,7 +73,6 @@ static Vec3b computeColor(float fx, float fy)
         const float col1 = colorWheel[k1][b] / 255.0f;
 
         float col = (1 - f) * col0 + f * col1;
-
         if (rad <= 1)
             col = 1 - rad * (1 - col); // increase saturation with radius
         else {
@@ -161,15 +160,16 @@ int main(int argc, const char* argv[])
     }
     int fcount = capture.get(CAP_PROP_FRAME_COUNT);
     Mat fPrev, prev;
-    capture >> fPrev;
+    capture.read(fPrev);
     if (fPrev.empty()) {
         cerr << "Fail to read the first frame" <<endl;
         return -1;
     }
     cvtColor(fPrev, prev, COLOR_BGR2GRAY);
+    cv::cuda::GpuMat d_tmp;
     for (int i = 0; i < fcount - 1; i++) {
         Mat fCurr, curr;
-        capture >> fCurr;
+        capture.read(fCurr);
         if (fCurr.empty()) {
             cerr << "Can't open frame " + i << endl;
             return -1;
@@ -180,7 +180,6 @@ int main(int argc, const char* argv[])
         cv::cuda::GpuMat d_frame1(curr);
         cv::cuda::GpuMat d_frame0f;
         cv::cuda::GpuMat d_frame1f;
-
         d_frame0.convertTo(d_frame0f, CV_32F, 1.0 / 255.0);
         d_frame1.convertTo(d_frame1f, CV_32F, 1.0 / 255.0);
 
@@ -190,21 +189,16 @@ int main(int argc, const char* argv[])
 
         const double timeSec = (getTickCount() - start) / getTickFrequency();
         cout << "Brox in frame "  << i << " using " << timeSec << " sec " << endl;
-        if (i == 0) {
-            std::ostringstream stream;
-            stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 1) << ".jpg";
-            showFlow(stream.str().c_str(), d_flow);
-            stream.str("");
-            stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 2) << ".jpg";
-            showFlow(stream.str().c_str(), d_flow);
-        } else {
-            std::ostringstream stream;
-            stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 2) << ".jpg";
-            showFlow(stream.str().c_str(), d_flow);
+        std::ostringstream stream;
+        stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 1) << ".jpg";
+        showFlow(stream.str().c_str(), d_flow);
+        if (i == fcount - 2) {
+            d_tmp = d_flow;
         }
-        
         prev = curr;
     }
-
+    std::ostringstream stream;
+    stream << output_path << "/" << std::setfill('0') << std::setw(5) << fcount << ".jpg";
+    showFlow(stream.str().c_str(), d_tmp);
     return 0;
 }
