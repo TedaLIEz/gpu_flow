@@ -17,7 +17,7 @@ inline bool isFlowCorrect(Point2f u)
     return !cvIsNaN(u.x) && !cvIsNaN(u.y) && fabs(u.x) < 1e9 && fabs(u.y) < 1e9;
 }
 
-static Vec4b computeColor(float fx, float fy)
+static Vec3b computeColor(float fx, float fy)
 {
     static bool first = true;
 
@@ -66,9 +66,7 @@ static Vec4b computeColor(float fx, float fy)
     const int k1 = (k0 + 1) % NCOLS;
     const float f = fk - k0;
 
-    Vec4b pix;
-    pix[3] = static_cast<uchar>(255.0);
-    bool alpha = false;
+    Vec3b pix;
     for (int b = 0; b < 3; b++)
     {
         const float col0 = colorWheel[k0][b] / 255.0f;
@@ -78,22 +76,17 @@ static Vec4b computeColor(float fx, float fy)
 
         if (rad <= 1)
             col = 1 - rad * (1 - col); // increase saturation with radius
-        else
-            col *= .75; // out of range
-        if (255.0 * col == 0.0) {
-            alpha = true;
+        else {
+            col *= .5; // out of range
         }
         pix[2 - b] = static_cast<uchar>(255.0 * col);
-    }
-    if (alpha) {
-        pix[3] = static_cast<uchar>(0.0);
     }
     return pix;
 }
 
 static void drawOpticalFlow(const Mat_<float>& flowx, const Mat_<float>& flowy, Mat& dst, float maxmotion = -1)
 {
-    dst.create(flowx.size(), CV_8UC4);  // change to CV_8UC4 to use the alpha channel.
+    dst.create(flowx.size(), CV_8UC3); 
     dst.setTo(Scalar::all(0));
 
     // determine motion range:
@@ -122,8 +115,11 @@ static void drawOpticalFlow(const Mat_<float>& flowx, const Mat_<float>& flowy, 
         {
             Point2f u(flowx(y, x), flowy(y, x));
 
-            if (isFlowCorrect(u))
-                dst.at<Vec4b>(y, x) = computeColor(u.x / maxrad, u.y / maxrad);
+            if (isFlowCorrect(u)) {
+                Vec3b rst = computeColor(u.x / maxrad, u.y / maxrad);
+                // std::cout << "pixel at (" << y << ", " << x << "): " << rst << std::endl;
+                dst.at<Vec3b>(y, x) = rst;
+            }
         }
     }
 }
@@ -157,7 +153,7 @@ int main(int argc, const char* argv[])
     }
 
     VideoCapture capture;
-    Ptr<cuda::BroxOpticalFlow> brox = cuda::BroxOpticalFlow::create(0.197f, 50.0f, 0.8f, 10, 77, 10);
+    Ptr<cuda::BroxOpticalFlow> brox = cuda::BroxOpticalFlow::create();
     capture.open(vpath);
     if (!capture.isOpened()) {
         cout << "Could not initialize capturing...\n" << endl;
@@ -198,7 +194,7 @@ int main(int argc, const char* argv[])
             std::ostringstream stream;
             stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 1) << ".jpg";
             showFlow(stream.str().c_str(), d_flow);
-            stream.clear();
+            stream.str("");
             stream << output_path << "/" << std::setfill('0') << std::setw(5) << (i + 2) << ".jpg";
             showFlow(stream.str().c_str(), d_flow);
         } else {
